@@ -9,5 +9,11 @@ export default {
       method: 'get',
       params: searchObj // url查询字符串或表单键值对
     })
+  },
+  getProjectList() {
+    return request({
+      url: `${api_name}/projects`,
+      method: 'get'
+    })
   }
 }

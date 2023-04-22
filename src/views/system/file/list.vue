@@ -6,8 +6,15 @@
         <el-row>
           <el-col :span="24">
             <el-form-item label="文件名称">
-              <el-input style="width: 25%" v-model="searchObj.Name" placeholder="文件名称"></el-input>
-              <el-input style="width: 25%" v-model="searchObj.Project" placeholder="项目名称"></el-input>  
+              <el-input style="width: 25%" v-model="searchObj.name" placeholder="文件名称"></el-input>
+              <el-select v-model="searchObj.project" placeholder="项目名称">
+            <el-option
+                v-for="item in projectListSearch"
+                :key="item.Id"
+                :label="item.Name"
+                :value="item.Name">
+            </el-option>
+         </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -59,14 +66,14 @@
     />
     <el-dialog title="文件上传" :visible.sync="dialogVisible" width="40%">
       <el-row style="display:flex">
-        <el-select v-model="value" placeholder="请选择项目">
-        <el-option
-          v-for="item in options"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value">
-        </el-option>
-      </el-select>
+          <el-select v-model="project" placeholder="项目名称">
+            <el-option
+                v-for="item in projectList"
+                :key="item.Id"
+                :label="item.Name"
+                :value="item.Name">
+            </el-option>
+         </el-select>
           <el-upload
           :http-request="Import"
           :multiple="true"
@@ -92,23 +99,39 @@ export default {
       searchObj: {}, // 查询条件
       multipleSelection: [], // 批量删除选中的记录列表
       fileList: [],
-      sysRole: {},
       dialogVisible: false,
-      options: []
+      projectList: [],
+      project: {},
+      projectListSearch: [],
+      projectSearch: {}
     }
   },
   // 页面渲染成功后获取数据
   created() {
     this.fetchData()
+    this.getProject()
   },
   // 定义方法
   methods: {
+    resetData() {
+      console.log('重置查询表单')
+      this.searchObj = {}
+      this.fetchData()
+    },
     fetchData(current=1) {
       this.page = current
       // 调用api
       api.getPageList(this.page, this.limit, this.searchObj).then(response => {
         this.list = response.data.records
         this.total = response.data.total
+      })
+    },
+    getProject() {
+      api.getProjectList().then(res => {
+        console.log(res)
+        this.projectList = res.data
+        this.projectListSearch = res.data
+        this.projectSearch = {}
       })
     },
     uploadFile() {
