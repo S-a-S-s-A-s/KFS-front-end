@@ -1,12 +1,11 @@
 import { login, logout, getInfo } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
-
 const getDefaultState = () => {
   return {
     token: getToken(),
     name: '',
-    avatar: ''
+    avatar: 'https://oss.aliyuncs.com/aliyun_id_photo_bucket/default_handsome.jpg'
   }
 }
 
@@ -35,6 +34,7 @@ const actions = {
       login({ username: username.trim(), password: password }).then(response => {
         const { data } = response
         commit('SET_TOKEN', data.token)
+        commit('SET_NAME', username)
         setToken(data.token)
         resolve()
       }).catch(error => {
@@ -52,11 +52,6 @@ const actions = {
         if (!data) {
           return reject('Verification failed, please Login again.')
         }
-
-        const { name, avatar } = data
-
-        commit('SET_NAME', name)
-        commit('SET_AVATAR', avatar)
         resolve(data)
       }).catch(error => {
         reject(error)

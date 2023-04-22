@@ -49,6 +49,7 @@
       <el-table-column prop="Name" label="文件名称" />
       <el-table-column prop="Size" label="文件大小" />
       <el-table-column prop="Project" label="项目" width="160"/>
+      <el-table-column prop="CreatTime" label="创建时间" width="160"/> 
       <el-table-column label="操作" width="200" align="center">
         <template slot-scope="scope">
           <el-button type="primary" icon="el-icon-download" size="mini" @click="download(scope.row.Name,scope.row.Project)" title="下载"/>
@@ -66,7 +67,7 @@
     />
     <el-dialog title="文件上传" :visible.sync="dialogVisible" width="40%">
       <el-row style="display:flex">
-          <el-select v-model="project" placeholder="项目名称">
+          <el-select v-model="project.name" placeholder="项目名称">
             <el-option
                 v-for="item in projectList"
                 :key="item.Id"
@@ -82,14 +83,18 @@
       <el-button class="btn"><i class="el-icon-paperclip"></i>上传附件</el-button>
       </el-upload>
         </el-row>
+      <el-progress :text-inside=true v-if="showProgress" :type="circle" :stroke-width="16" :percentage="progressPercent"></el-progress>
     </el-dialog>
   </div>
 </template>
 <script>
 import api from '@/api/file'
 import store from '@/store'
+import { downloadProgress } from '@/mixins/downloadProgress.js'
 export default {
-// 定义数据模型
+  name: 'mcu',
+  mixins: [downloadProgress],
+  // 定义数据模型
   data() {
     return {
       list: [], // 列表
@@ -103,7 +108,9 @@ export default {
       projectList: [],
       project: {},
       projectListSearch: [],
-      projectSearch: {}
+      projectSearch: {},
+      progressPercent: 0,
+      showProgress: false
     }
   },
   // 页面渲染成功后获取数据
@@ -138,6 +145,8 @@ export default {
       this.dialogVisible = true
     },
     download(Name, Project) {
+      let downProgress = {}
+      const uniSign = new Date().getTime() + ''
       const formData = new FormData()
       // 附带token
       formData.append('token', store.getters.token)
@@ -148,7 +157,14 @@ export default {
         {
           method: 'post',
           url: `dev-api/file/download/${Name}/${Project}`,
-          data: formData
+          data: formData,
+          onDownloadProgress(progress) {
+            // console.log(progress)
+            // progress对象中的loaded表示已经下载的数量，total表示总数量，这里计算出百分比
+            downProgress = Math.round(100 * progress.loaded / progress.total)
+            // 将此次下载的文件名和下载进度组成对象再用vuex状态管理
+            store.commit('downLoadProgress/SET_PROGRESS', { path: uniSign, 'progress': downProgress })
+          }
         })
         .then(res => {
           const blob = new Blob([res.data])
@@ -167,23 +183,32 @@ export default {
           a.click()
           URL.revokeObjectURL(a.href)
           document.body.removeChild(a)
+          this.$message.success(res.$msg || '下载成功')
         })
     },
 
     // 上传
     Import(data) {
+      this.showProgress = true
       const formData = new FormData()
       formData.append('file', data.file)
       formData.append('token', store.getters.token)
+      formData.append('projectName', this.project.name)
+      formData.append('userName', store.getters.name)
       this.axios(
         {
           method: 'post',
           url: 'dev-api/file/upload',
-          data: formData
+          data: formData,
+          onUploadProgress: progressEvent => {
+            this.progressPercent = Number((progressEvent.loaded / progressEvent.total * 100).toFixed(1))
+          }
         })
         .then((res) => {
-          this.$message.success(res.$msg || '操作成功')
+          this.$message.success(res.$msg || '上传成功')
           this.fileList = []
+          this.showProgress = false
+          this.progressPercent = 0
         })
     }
   }

@@ -43,10 +43,10 @@
 
       <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
 
-      <div class="tips">
+      <!-- <div class="tips">
         <span style="margin-right:20px;">username: admin</span>
         <span> password: any</span>
-      </div>
+      </div> -->
 
     </el-form>
   </div>
@@ -54,15 +54,14 @@
 
 <script>
 // import { validUsername } from '@/utils/validate'
-
 export default {
   name: 'Login',
   data() {
     const validateUsername = (rule, value, callback) => {
-        callback()
+      callback()
     }
     const validatePassword = (rule, value, callback) => {
-        callback()
+      callback()
     }
     return {
       loginForm: {
