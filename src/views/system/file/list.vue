@@ -49,7 +49,7 @@
       <el-table-column prop="Name" label="文件名称" />
       <el-table-column prop="Size" label="文件大小" />
       <el-table-column prop="Project" label="项目" width="160"/>
-      <el-table-column prop="CreatTime" label="创建时间" width="160"/> 
+      <el-table-column prop="CreatTime" label="创建时间" width="200"/>
       <el-table-column label="操作" width="200" align="center">
         <template slot-scope="scope">
           <el-button type="primary" icon="el-icon-download" size="mini" @click="download(scope.row.Name,scope.row.Project)" title="下载"/>
@@ -183,7 +183,7 @@ export default {
           a.click()
           URL.revokeObjectURL(a.href)
           document.body.removeChild(a)
-          this.$message.success(res.$msg || '下载成功')
+          this.$message.success('下载成功')
         })
     },
 
@@ -209,6 +209,7 @@ export default {
           this.fileList = []
           this.showProgress = false
           this.progressPercent = 0
+          this.fetchData()
         })
     }
   }
