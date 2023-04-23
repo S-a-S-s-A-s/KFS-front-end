@@ -49,10 +49,11 @@
       <el-table-column prop="Name" label="文件名称" />
       <el-table-column prop="Size" label="文件大小" />
       <el-table-column prop="Project" label="项目" width="160"/>
-      <el-table-column prop="CreatTime" label="创建时间" width="200"/>
+      <el-table-column prop="CreatTime" label="上传时间" width="200"/>
+      <el-table-column prop="UserName" label="上传者" />
       <el-table-column label="操作" width="200" align="center">
         <template slot-scope="scope">
-          <el-button type="primary" icon="el-icon-download" size="mini" @click="download(scope.row.Name,scope.row.Project)" title="下载"/>
+          <el-button type="primary" icon="el-icon-download" size="mini" @click="downloadFile(scope.row.Name,scope.row.Project)" title="下载"/>
         </template>
       </el-table-column>
     </el-table>
@@ -110,7 +111,8 @@ export default {
       projectListSearch: [],
       projectSearch: {},
       progressPercent: 0,
-      showProgress: false
+      showProgress: false,
+      file: {}
     }
   },
   // 页面渲染成功后获取数据
@@ -211,6 +213,99 @@ export default {
           this.progressPercent = 0
           this.fetchData()
         })
+    },
+    // 下载大文件
+    // 点击下载文件
+    downloadFile(Name, Project) {
+    // console.log("下载", file);
+      api.getFileSize(Name, Project).then(res => {
+        this.file.name = Name
+        this.file.project = Project
+        this.file.size = res.data.size
+        this.file.downloadingStop = false
+        // file.downloadSpeed = "0 M/s";
+        this.file.downloadPersentage = 0
+        this.file.blobList = []
+        this.file.chunkList = []
+        // downloadingFileList.value.push(file);
+        const uniSign = new Date().getTime() + ''
+        this.downloadChunk(1, this.file, uniSign)
+      })
+    },
+    // 点击下载文件分片
+    downloadChunk(index, file, uniSign) {
+      var chunkSize = 1024 * 1024 * 250
+      var chunkTotal = Math.ceil(file.size / chunkSize)
+      if (index <= chunkTotal) {
+      // console.log("下载进度",index);
+        var exit = file.chunkList.includes(index)
+        // console.log("存在", exit)
+
+        if (!exit) {
+          if (!file.downloadingStop) {
+            var formData = new FormData()
+            formData.append('fileName', file.name)
+            formData.append('projectName', file.project)
+            formData.append('chunkSize', chunkSize)
+            formData.append('token', store.getters.token)
+            formData.append('index', index)
+            formData.append('chunkTotal', chunkTotal)
+            if (index * chunkSize >= file.size) {
+              chunkSize = file.size - (index - 1) * chunkSize
+              formData.set('chunkSize', chunkSize)
+            }
+
+            // var startTime = new Date().valueOf()
+
+            this.axios({
+              url: `dev-api/file/download`,
+              method: 'post',
+              data: formData,
+              responseType: 'blob',
+              timeout: 50000
+            }).then((res) => {
+              file.chunkList.push(index)
+              // var endTime = new Date().valueOf()
+              // var timeDif = (endTime - startTime) / 1000
+              //  file.downloadSpeed = (5 / timeDif).toFixed(1) + 'M/s'
+              // todo
+              file.downloadPersentage = parseInt((index / chunkTotal) * 100)
+              // var chunk = res.data.data.chunk
+              // const blob = new Blob([res.data]);
+              const blob = res.data
+              store.commit('downLoadProgress/SET_PROGRESS', { path: uniSign, 'progress': file.downloadPersentage })
+              file.blobList.push(blob)
+              // console.log("res", blobList);
+              if (index === chunkTotal) {
+                var resBlob = new Blob(file.blobList, {
+                  type: 'application/octet-stream'
+                })
+                // console.log("resb", resBlob);
+
+                const url = window.URL.createObjectURL(resBlob) // 将获取的文件转化为blob格式
+                const a = document.createElement('a') // 此处向下是打开一个储存位置
+                a.style.display = 'none'
+                a.href = url
+                // 下面两行是自己项目需要的处理，总之就是得到下载的文件名（加后缀）即可
+
+                var fileName = file.name
+
+                a.setAttribute('download', fileName)
+                document.body.appendChild(a)
+                a.click() // 点击下载
+                document.body.removeChild(a) // 下载完成移除元素
+                window.URL.revokeObjectURL(url) // 释放掉blob对象
+                this.$message.success('下载成功')
+              }
+
+              this.downloadChunk(index + 1, file, uniSign)
+            })
+          }
+        } else {
+          file.downloadPersentage = parseInt((index / chunkTotal) * 100)
+          this.downloadChunk(index + 1, file)
+        }
+      }
     }
   }
 }

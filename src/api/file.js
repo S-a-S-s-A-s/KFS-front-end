@@ -15,5 +15,11 @@ export default {
       url: `${api_name}/projects`,
       method: 'get'
     })
+  },
+  getFileSize(Name, Project) {
+    return request({
+      url: `${api_name}/info/${Name}/${Project}`,
+      method: 'get'
+    })
   }
 }
