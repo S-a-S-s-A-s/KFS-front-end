@@ -3,7 +3,7 @@
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
 
       <div class="title-container">
-        <h3 class="title">Login Form</h3>
+        <h3 class="title">K F S</h3>
       </div>
 
       <el-form-item prop="username">
@@ -58,15 +58,23 @@ export default {
   name: 'Login',
   data() {
     const validateUsername = (rule, value, callback) => {
-      callback()
+      if (value === '') {
+        callback(new Error('Please enter the user name'))
+      } else {
+        callback()
+      }
     }
     const validatePassword = (rule, value, callback) => {
-      callback()
+      if (value.length === 0) {
+        callback(new Error('Please enter the user password'))
+      } else {
+        callback()
+      }
     }
     return {
       loginForm: {
-        username: 'demo',
-        password: 'demo'
+        username: '',
+        password: ''
       },
       loginRules: {
         username: [{ required: true, trigger: 'blur', validator: validateUsername }],

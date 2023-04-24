@@ -7,7 +7,7 @@
           <el-col :span="24">
             <el-form-item label="文件名称">
               <el-input style="width: 25%" v-model="searchObj.name" placeholder="文件名称"></el-input>
-              <el-select v-model="searchObj.project" placeholder="项目名称">
+              <el-select v-model="searchObj.projectName" placeholder="项目名称">
             <el-option
                 v-for="item in projectListSearch"
                 :key="item.Id"
@@ -20,7 +20,7 @@
         </el-row>
         <el-row style="display:flex">
           <el-button type="primary" icon="el-icon-search" size="mini" :loading="loading" @click="fetchData()">搜索</el-button>
-          <el-button icon="el-icon-refresh" size="mini" @click="resetData">重置</el-button>
+          <!-- <el-button icon="el-icon-refresh" size="mini" @click="resetData">重置</el-button> -->
           <!-- <el-button type="primary" icon="el-icon-upload" size="mini" :loading="loading" @click="uploadFilesdasd()">上传</el-button> -->
           <el-button type="success" icon="el-icon-upload" size="mini" @click="uploadFile">上传</el-button>
         </el-row>
@@ -76,6 +76,14 @@
                 :value="item.Name">
             </el-option>
          </el-select>
+         <el-select v-model="public.name" placeholder="是否公开">
+            <el-option
+                v-for="item in publicList"
+                :key="item.Id"
+                :label="item.Name"
+                :value="item.Name">
+            </el-option>
+         </el-select>
           <el-upload
           :http-request="Import"
           :multiple="true"
@@ -112,22 +120,37 @@ export default {
       projectSearch: {},
       progressPercent: 0,
       showProgress: false,
-      file: {}
+      file: {},
+      publicList: [{ 'Id': 1, 'Name': '是' }, { 'Id': 2, 'Name': '否' }],
+      public: {}
     }
   },
   // 页面渲染成功后获取数据
   created() {
-    this.fetchData()
     this.getProject()
+    this.fetchData()
   },
   // 定义方法
   methods: {
-    resetData() {
-      console.log('重置查询表单')
-      this.searchObj = {}
-      this.fetchData()
-    },
+    // resetData() {
+    //   console.log('重置查询表单')
+    //   this.searchObj = {}
+    //   // this.fetchData()
+    // },
     fetchData(current=1) {
+      if (this.searchObj.projectName === undefined) {
+        // console.log('jhhh')
+        this.$message.warning('请选择项目')
+        return
+      }
+      // console.log(this.searchObj.projectName)
+      var item
+      for (item in this.projectListSearch) {
+        // console.log(item)
+        if (this.projectListSearch[item].Name === this.searchObj.projectName) {
+          this.searchObj.projectId = this.projectListSearch[item].Id
+        }
+      }
       this.page = current
       // 调用api
       api.getPageList(this.page, this.limit, this.searchObj).then(response => {
@@ -137,10 +160,10 @@ export default {
     },
     getProject() {
       api.getProjectList().then(res => {
-        console.log(res)
+        // console.log(res)
         this.projectList = res.data
         this.projectListSearch = res.data
-        this.projectSearch = {}
+        // this.projectSearch = {}
       })
     },
     uploadFile() {
@@ -191,28 +214,44 @@ export default {
 
     // 上传
     Import(data) {
-      this.showProgress = true
-      const formData = new FormData()
-      formData.append('file', data.file)
-      formData.append('token', store.getters.token)
-      formData.append('projectName', this.project.name)
-      formData.append('userName', store.getters.name)
-      this.axios(
-        {
-          method: 'post',
-          url: 'dev-api/file/upload',
-          data: formData,
-          onUploadProgress: progressEvent => {
-            this.progressPercent = Number((progressEvent.loaded / progressEvent.total * 100).toFixed(1))
-          }
-        })
-        .then((res) => {
-          this.$message.success(res.$msg || '上传成功')
+      var item
+      var projectId
+      for (item in this.projectList) {
+        // console.log(item)
+        if (this.projectList[item].Name === this.project.name) {
+          projectId = this.projectList[item].Id
+        }
+      }
+      api.getUploadAuth(projectId).then(res => {
+        if (res.code === 200) {
+          this.showProgress = true
+          const formData = new FormData()
+          formData.append('file', data.file)
+          formData.append('token', store.getters.token)
+          formData.append('projectName', this.project.name)
+          formData.append('userName', store.getters.name)
+          formData.append('isPublic', this.public.name)
+          this.axios(
+            {
+              method: 'post',
+              url: 'dev-api/file/upload',
+              data: formData,
+              onUploadProgress: progressEvent => {
+                this.progressPercent = Number((progressEvent.loaded / progressEvent.total * 100).toFixed(1))
+              }
+            })
+            .then((res) => {
+              this.$message.success(res.$msg || '上传成功')
+              this.fileList = []
+              this.showProgress = false
+              this.progressPercent = 0
+              // this.fetchData()
+            })
+        } else {
           this.fileList = []
-          this.showProgress = false
-          this.progressPercent = 0
-          this.fetchData()
-        })
+          this.$message.warning('权限不足')
+        }
+      })
     },
     // 下载大文件
     // 点击下载文件

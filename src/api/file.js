@@ -21,5 +21,19 @@ export default {
       url: `${api_name}/info/${Name}/${Project}`,
       method: 'get'
     })
+  },
+  getDownloadAuth(ProjectName) {
+    return request({
+      url: `${api_name}/download/auth`,
+      method: 'get',
+      params: { 'projectName': ProjectName }
+    })
+  },
+  getUploadAuth(ProjectId) {
+    return request({
+      url: `${api_name}/uploadAuth`,
+      method: 'get',
+      params: { 'projectId': ProjectId }
+    })
   }
 }
